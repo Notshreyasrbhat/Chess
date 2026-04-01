@@ -1,0 +1,8 @@
+build/
+.vs/
+.vscode/
+Engines/*
+.cache/
+Stockfish/
+imgui.ini
+compile_commands.json

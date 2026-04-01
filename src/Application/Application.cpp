@@ -302,7 +302,15 @@ void Application::RenderImGui() {
     float sqSize = m_ChessPanelSize.x / 8.0f;
     Colour colour = GetColour(m_Board[m_PromotionFrom]);
 
-    float startY = m_ChessPanelPos.y + (7.0f - 7.0f) * sqSize;  // Fixed Y position for rank 7
+    // Position popup based on which color is promoting
+    float startY;
+    if (colour == White) {
+        // White promotes at rank 7 (top of board)
+        startY = m_ChessPanelPos.y;
+    } else {
+        // Black promotes at rank 0 (bottom of board)
+        startY = m_ChessPanelPos.y + m_ChessPanelSize.y - sqSize * 4.0f;
+    }
 
     // For White, place the popup on the left; for Black, place it on the right with an additional offset
     float startX;

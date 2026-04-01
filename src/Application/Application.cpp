@@ -203,6 +203,21 @@ void Application::Init() {
     spec.Width = m_WindowProperties.Width;
     spec.Height = m_WindowProperties.Height;
     m_ChessViewport = std::make_shared<Framebuffer>(spec);
+
+    // Add default Stockfish bot - try multiple path variations
+    std::vector<std::filesystem::path> potentialPaths = {
+        "stockfish/Bot.exe",
+        "../stockfish/Bot.exe",
+        "build/../stockfish/Bot.exe",
+        std::filesystem::path(std::filesystem::current_path()) / "stockfish" / "Bot.exe"
+    };
+    
+    for (const auto& path : potentialPaths) {
+        if (std::filesystem::exists(path)) {
+            m_Engines.emplace_back(std::pair{ "Stockfish", std::filesystem::absolute(path) });
+            break;
+        }
+    }
 }
 
 void Application::RenderImGui() {

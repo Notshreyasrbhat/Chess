@@ -57,6 +57,25 @@ git clone https://github.com/Notshreyasrbhat/Chess.git
 cd Chess
 ```
 
+### Install Stockfish
+
+To use the chess engine, download [Stockfish](https://stockfishchess.org/download/) and place it in the project root directory. Rename the executable to `bot`:
+
+**Windows:**
+```bash
+# Download stockfish from https://stockfishchess.org/download/
+# Then rename the executable to:
+ren stockfish-windows-x86-64-avx2.exe bot.exe
+```
+
+**Linux/Mac:**
+```bash
+# Download stockfish from https://stockfishchess.org/download/
+# Then rename the executable to:
+mv stockfish_<version> bot
+chmod +x bot
+```
+
 ### Build using CMake
 
 ```bash

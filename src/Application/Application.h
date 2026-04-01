@@ -85,6 +85,7 @@ private:
 
     //promotion
     bool   m_ShowPromotionPopup = false;
+    bool   m_PromotionPopupJustOpened = false;
     Square m_PromotionFrom      = INVALID_SQUARE;
     Square m_PromotionTo        = INVALID_SQUARE;
     bool IsPromotionMove(Square from, Square to);

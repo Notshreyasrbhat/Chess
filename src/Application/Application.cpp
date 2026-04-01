@@ -317,15 +317,8 @@ void Application::RenderImGui() {
     float sqSize = m_ChessPanelSize.x / 8.0f;
     Colour colour = GetColour(m_Board[m_PromotionFrom]);
 
-    // Position popup based on which color is promoting
-    float startY;
-    if (colour == White) {
-        // White promotes at rank 7 (top of board)
-        startY = m_ChessPanelPos.y;
-    } else {
-        // Black promotes at rank 0 (bottom of board)
-        startY = m_ChessPanelPos.y + m_ChessPanelSize.y - sqSize * 4.0f;
-    }
+    // Position popup at white's height (rank 8) for both colors
+    float startY = m_ChessPanelPos.y;
 
     // For White, place the popup on the left; for Black, place it on the right with an additional offset
     float startX;
@@ -385,12 +378,17 @@ void Application::RenderImGui() {
 
     ImGui::PopStyleVar(2);
 
-    if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)
+    // Close popup if clicked outside (but not on the first frame after opening)
+    if (!m_PromotionPopupJustOpened && 
+        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)
         && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         m_ShowPromotionPopup = false;
         m_SelectedPiece = INVALID_SQUARE;
         m_LegalMoves = 0;
     }
+    
+    // Reset the flag after the first frame
+    m_PromotionPopupJustOpened = false;
 
     ImGui::End();
     }
@@ -496,6 +494,7 @@ void Application::TryMove(Square from, Square to) {
         m_PromotionFrom        = from;
         m_PromotionTo          = to;
         m_ShowPromotionPopup   = true;
+        m_PromotionPopupJustOpened = true;  // Flag to prevent immediate close
         // Do NOT call m_Board.Move() yet
     } else {
         m_Board.Move({ from, to });
@@ -514,51 +513,50 @@ void Application::OnMouseButton(int32_t button, int32_t action, int32_t mods) {
         if (action == GLFW_PRESS) {
             m_IsHoldingPiece = true;
 
+            // Skip board interaction if promotion popup is open
+            if (m_ShowPromotionPopup)
+                return;
+
             if (point.x > -4 && point.x < 4 && point.y > -4 && point.y < 4) {
                 Square rank = (Square)(point.x + 4.0f);
                 Square file = (Square)(point.y + 4.0f);
 
                 // The square the mouse clicked on
-                Square selectedSquare = ToSquare('a' + rank, '1' + file);
+                Square clickedSquare = ToSquare('a' + rank, '1' + file);
 
-                // If a piece was already selected, move piece to clicked square
-                if (m_SelectedPiece != INVALID_SQUARE && m_SelectedPiece != selectedSquare) {
-                    if (m_LegalMoves & (1ull << selectedSquare) || selectedSquare == m_SelectedPiece) {
-                    
-                        TryMove(m_SelectedPiece, selectedSquare);
+                // If a piece was already selected
+                if (m_SelectedPiece != INVALID_SQUARE) {
+                    if (clickedSquare == m_SelectedPiece) {
+                        // Clicking the same piece again deselects it
+                        m_SelectedPiece = INVALID_SQUARE;
+                        m_LegalMoves = 0;
+                    } else if (m_LegalMoves & (1ull << clickedSquare)) {
+                        // Check if this is a promotion move before clearing selection
+                        bool isPromo = IsPromotionMove(m_SelectedPiece, clickedSquare);
+                        TryMove(m_SelectedPiece, clickedSquare);
+                        
+                        // Only clear selection if NOT a promotion
+                        if (!isPromo) {
+                            m_SelectedPiece = INVALID_SQUARE;
+                            m_LegalMoves = 0;
+                        }
+                    } else {
+                        // Clicked on a non-legal square - select new piece if it exists
+                        m_LegalMoves = m_Board.GetPieceLegalMoves(clickedSquare);
+                        m_SelectedPiece = m_LegalMoves == 0 ? INVALID_SQUARE : clickedSquare;
                     }
-
-                    m_SelectedPiece = INVALID_SQUARE;
-                    m_LegalMoves = 0;
+                } else {
+                    // No piece selected yet - select the clicked square
+                    m_LegalMoves = m_Board.GetPieceLegalMoves(clickedSquare);
+                    m_SelectedPiece = m_LegalMoves == 0 ? INVALID_SQUARE : clickedSquare;
                 }
-                else {  // If no piece already selected, select piece
-                    m_LegalMoves = m_Board.GetPieceLegalMoves(selectedSquare);
-                    m_SelectedPiece = m_LegalMoves == 0 ? INVALID_SQUARE : selectedSquare;
-                }
-            }
-            else {
+            } else {
                 m_SelectedPiece = INVALID_SQUARE;
                 m_LegalMoves = 0;
             }
         }
         else if (action == GLFW_RELEASE) {
-            if (point.x > -4 && point.x < 4 && point.y > -4 && point.y < 4) {
-                Square rank = (Square)(point.x + 4.0f);
-                Square file = (Square)(point.y + 4.0f);
-
-                // The square the mouse was released on
-                Square selectedSquare = ToSquare('a' + rank, '1' + file);
-
-                if (m_SelectedPiece != INVALID_SQUARE) {
-                    if (m_LegalMoves & (1ull << selectedSquare)) {
-                        TryMove(m_SelectedPiece, selectedSquare);
-                        m_LegalMoves = 0;
-                    }
-                }
-            }
-
             m_IsHoldingPiece = false;
-            m_SelectedPiece = INVALID_SQUARE;
         }
     }
     else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
